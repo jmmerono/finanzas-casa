@@ -44,8 +44,10 @@ function InstallBanner() {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 12, fontSize: 13, borderBottom: '2px solid #f59e0b', flexWrap: 'wrap'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-        <span style={{ fontSize: 20 }}>🏠</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>MP</span>
+          </div>
         {show === 'ios' ? (
           <span>Instala la app: pulsa <strong style={{ color: '#f59e0b' }}>Compartir</strong> y luego <strong style={{ color: '#f59e0b' }}>Añadir a pantalla de inicio</strong></span>
         ) : (
@@ -90,8 +92,15 @@ export default function App() {
           flexWrap: 'wrap', gap: 12
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🏠</span>
-            <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>Finanzas casa</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 8, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.5px' }}>MP</span>
+              </div>
+              <div style={{ lineHeight: 1.15 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Meroño</div>
+                <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)' }}>Paredes</div>
+              </div>
+            </div>
           </div>
           <nav style={{ display: 'flex', gap: 6 }}>
             <NavLink to="/" end style={linkStyle}>Dashboard</NavLink>
