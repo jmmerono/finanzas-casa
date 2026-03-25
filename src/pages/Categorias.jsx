@@ -43,6 +43,8 @@ export default function Categorias() {
   const [pending, setPending] = useState([])
   const [loadingAI, setLoadingAI] = useState({})
   const [pendingEdits, setPendingEdits] = useState({})
+  const [pendFiltCat, setPendFiltCat] = useState("")
+  const [pendFiltEst, setPendFiltEst] = useState("")
 
   // ── FIX: ref para acceder al catálogo actual dentro de callbacks de Firebase
   // sin necesitar que sean dependencias del useEffect
@@ -332,7 +334,9 @@ Responde SOLO con JSON válido, sin texto adicional:
   const cc = {}; items.forEach(i => { cc[i.c] = (cc[i.c] || 0) + 1 })
   const pendientesSinConfirmar = pending.filter(p => p.estado === "pendiente").length
 
-  const CatSel = ({ v, on, st }) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+  // CatSel y SubSel como funciones que devuelven JSX (no componentes),
+  // para evitar desmontaje/remontaje y pérdida de foco en cada render
+  const renderCatSel = (v, on, st) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
     <select value={v} onChange={on} style={st}>
       <option value="">Categoría...</option>
       {cats.map(c => <option key={c}>{c}</option>)}
@@ -350,7 +354,14 @@ Responde SOLO con JSON válido, sin texto adicional:
       <button onClick={() => { if (inlineCat.trim()) addCatInline(inlineCat.trim(), on) }} style={{ fontSize: 11, padding: "3px 8px", background: "var(--success-bg)", color: "var(--success)" }}>✓</button>
     </div>}
   </div>
-  const SubSel = ({ cat: p, v, on, cv, co, st }) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}><select value={v} onChange={on} style={st}><option value="">Subcategoría...</option>{p && (subs[p] || []).map(s => <option key={s}>{s}</option>)}<option value="__c">+ Nueva</option></select>{v === "__c" && <input value={cv} onChange={co} placeholder="Nombre..." style={{ fontSize: 11, background: 'var(--warning-bg)', borderColor: '#f59e0b' }} />}</div>
+  const renderSubSel = (p, v, on, cv, co, st) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <select value={v} onChange={on} style={st}>
+      <option value="">Subcategoría...</option>
+      {p && (subs[p] || []).map(s => <option key={s}>{s}</option>)}
+      <option value="__c">+ Nueva</option>
+    </select>
+    {v === "__c" && <input autoFocus value={cv} onChange={co} placeholder="Nombre..." style={{ fontSize: 11, background: 'var(--warning-bg)', borderColor: '#f59e0b' }} />}
+  </div>
 
   const tabs = [
     { id: "pending", l: `Pendientes${pendientesSinConfirmar > 0 ? ` (${pendientesSinConfirmar})` : ""}` },
@@ -384,10 +395,19 @@ Responde SOLO con JSON válido, sin texto adicional:
     {/* ── PENDIENTES ── */}
     {view === "pending" && <>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        <div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
-            Gastos importados sin categoría o marcados como REVISAR. Claude propone una categoría automáticamente.
+            Gastos sin categoría. Claude puede sugerir automáticamente.
           </p>
+          <select value={pendFiltCat} onChange={e => setPendFiltCat(e.target.value)} style={{ fontSize: 12, minWidth: 130 }}>
+            <option value="">Todas las categorías</option>
+            {cats.map(c => <option key={c}>{c}</option>)}
+          </select>
+          <select value={pendFiltEst} onChange={e => setPendFiltEst(e.target.value)} style={{ fontSize: 12, minWidth: 130 }}>
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="confirmado">Confirmados</option>
+          </select>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={autoCategorizeAll} style={{ background: "#6366f1", color: "white", border: "none", fontSize: 12 }}>
@@ -403,7 +423,12 @@ Responde SOLO con JSON válido, sin texto adicional:
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {pending.map((item, idx) => {
+          {pending.filter(item => {
+            if (pendFiltEst && item.estado !== pendFiltEst) return false
+            const cat = item.catFinal || item.catSugerida || ""
+            if (pendFiltCat && cat !== pendFiltCat) return false
+            return true
+          }).map((item, idx) => {
             const edit = pendingEdits[idx] || {}
             const catActual = edit.cat !== undefined ? edit.cat : (item.catFinal || item.catSugerida || "")
             const subActual = edit.sub !== undefined ? edit.sub : (item.subFinal || item.subSugerida || "")
@@ -541,8 +566,8 @@ Responde SOLO con JSON válido, sin texto adicional:
                 <span onClick={() => togR(ri)} style={{ cursor: "pointer", fontSize: 14, opacity: item.r ? 1 : .2 }}>⚑</span>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", paddingRight: 8 }} title={item.d}>{item.d}</span>
                 {isE ? <>
-                  <SubSel cat={eC} v={eS} on={e => setES(e.target.value)} cv={eCS} co={e => setECS(e.target.value)} />
-                  <CatSel v={eC} on={e => { setEC(e.target.value); setES("") }} />
+                  {renderSubSel(eC, eS, e => setES(e.target.value), eCS, e => setECS(e.target.value))}
+                  {renderCatSel(eC, e => { setEC(e.target.value); setES("") })}
                   <div style={{ display: "flex", gap: 3 }}>
                     <button onClick={() => upd(ri)} style={{ fontSize: 11, padding: "3px 8px", background: "var(--success-bg)", color: "var(--success)" }}>✓</button>
                     <button onClick={() => setEI(null)} style={{ fontSize: 11, padding: "3px 8px" }}>✕</button>
@@ -573,8 +598,8 @@ Responde SOLO con JSON válido, sin texto adicional:
             <span>Marcar para revisar</span>
           </label>
           {!aR && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div><label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>Categoría</label><CatSel v={aC} on={e => { setAC(e.target.value); setAS("") }} st={{ width: "100%" }} /></div>
-            <div><label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>Subcategoría</label><SubSel cat={aC} v={aS} on={e => setAS(e.target.value)} cv={aCS} co={e => setACS(e.target.value)} st={{ width: "100%" }} /></div>
+            <div><label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>Categoría</label>{renderCatSel(aC, e => { setAC(e.target.value); setAS("") }, { width: "100%" })}</div>
+            <div><label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>Subcategoría</label>{renderSubSel(aC, aS, e => setAS(e.target.value), aCS, e => setACS(e.target.value), { width: "100%" })}</div>
           </div>}
           <button onClick={addOne}>{aR ? "Añadir como revisar" : "Añadir al catálogo"}</button>
         </div>
@@ -589,17 +614,6 @@ Responde SOLO con JSON válido, sin texto adicional:
 
     {/* ── GESTIONAR CATEGORÍAS ── */}
     {view === "manage" && <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", padding: "1rem 1.25rem" }}>
-        <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500 }}>Crear categoría</h3>
-        <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>Nombre</label>
-            <input value={nCat} onChange={e => setNCat(e.target.value)} placeholder="Ej: Suscripciones" onKeyDown={e => { if (e.key === "Enter") addCat() }} style={{ width: "100%" }} />
-          </div>
-          <input type="color" value={nCol} onChange={e => setNCol(e.target.value)} style={{ width: 38, height: 36, borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", padding: 2 }} />
-          <button onClick={addCat}>+ Crear</button>
-        </div>
-      </div>
       <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", padding: "1rem 1.25rem" }}>
         <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500 }}>Categorías y subcategorías</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -620,7 +634,7 @@ Responde SOLO con JSON válido, sin texto adicional:
               {isO && <div style={{ padding: "8px 12px 12px", borderTop: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
                   {sb.length === 0 && <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontStyle: "italic" }}>Sin subcategorías</span>}
-                  {sb.map(s => { const sc = items.filter(i => i.c === cat && i.s === s).length; return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: "var(--radius)", background: "var(--bg-primary)", border: "1px solid var(--border)", fontSize: 11 }}><span>{s}</span><span style={{ color: "var(--text-tertiary)", fontSize: 9 }}>({sc})</span>{sc === 0 && <span onClick={() => delSub(cat, s)} style={{ cursor: "pointer", color: "var(--danger)", fontSize: 9, marginLeft: 2 }}>✕</span>}</div> })}
+                  {sb.map(s => { const sc = items.filter(i => i.c === cat && i.s === s).length; return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: "var(--radius)", background: "var(--bg-primary)", border: "1px solid var(--border)", fontSize: 11 }}><span>{s}</span><span style={{ color: "var(--text-tertiary)", fontSize: 9 }}>({sc})</span><span onClick={() => delSub(cat, s)} style={{ cursor: "pointer", color: sc > 0 ? "var(--text-tertiary)" : "var(--danger)", fontSize: 9, marginLeft: 2 }} title={sc > 0 ? `Tiene ${sc} items` : "Eliminar"}>✕</span></div> })}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input value={nSubs[cat] || ""} onChange={e => setNSubs(prev => ({ ...prev, [cat]: e.target.value }))} placeholder="Nueva subcategoría..." onKeyDown={e => { if (e.key === "Enter") addSub(cat) }} style={{ flex: 1, fontSize: 12 }} />
@@ -629,6 +643,15 @@ Responde SOLO con JSON válido, sin texto adicional:
               </div>}
             </div>
           })}
+
+          {/* Crear nueva categoría inline al final de la lista */}
+          <div style={{ border: "2px dashed var(--border)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input value={nCat} onChange={e => setNCat(e.target.value)} placeholder="Nueva categoría..." onKeyDown={e => { if (e.key === "Enter") addCat() }} style={{ flex: 1, minWidth: 160, fontSize: 13 }} />
+              <input type="color" value={nCol} onChange={e => setNCol(e.target.value)} style={{ width: 34, height: 32, borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", padding: 2 }} />
+              <button onClick={addCat} style={{ fontSize: 13 }}>+ Crear categoría</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>}
