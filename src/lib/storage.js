@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, onValue } from 'firebase/database'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCc4Ne13cDBeoLQxlXXl5o5-M9oxVSS6hY",
-  authDomain: "finanzas-casa-4f1cc.firebaseapp.com",
-  databaseURL: "https://finanzas-casa-4f1cc-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "finanzas-casa-4f1cc",
-  storageBucket: "finanzas-casa-4f1cc.firebasestorage.app",
-  messagingSenderId: "545467706523",
-  appId: "1:545467706523:web:13a1b55e75b15382faaa3e",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 const app = initializeApp(firebaseConfig)
