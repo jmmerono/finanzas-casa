@@ -10,33 +10,31 @@ const SK_TXN = "cc-txn-detail-v1"
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 const CAT_COLS = {"Hogar":"#10b981","Educación":"#3b82f6","Ocio":"#ec4899","Inmobiliario":"#6366f1","Salud":"#ef4444","Movilidad-Coche":"#f97316","Casa":"#8b5cf6","Retirada Efectivo":"#78716c","REVISAR":"#eab308"}
 
-const JAN25 = {
-  id:"2025-01",mes:"Ene",año:2025,mesN:"Enero",
-  ingresos:14519.89,gastos:12978.40,
-  cats:{"Hogar":9128.78,"Educación":984,"Ocio":878.63,"Retirada Efectivo":390,"Inmobiliario":363.94,"Salud":123.25,"Movilidad-Coche":67.09,"Casa":100,"REVISAR":942.71}
-}
-
 const fmt = n => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:0,maximumFractionDigits:0}).format(n)
 const fmt2 = n => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n)
 const pct = n => (n*100).toFixed(1)+"%"
 
+// Parser robusto: maneja "-1.234,56 €", "1.200,00 €", "-69,58 €", etc.
+const parseImporte = (raw) => {
+  const clean = raw.replace(/[€\s]/g, "").replace(/\./g, "").replace(",", ".")
+  return parseFloat(clean)
+}
+
 export default function Dashboard() {
   const [data, setData] = useState([])
-  const [txnDetail, setTxnDetail] = useState([]) // todas las transacciones con detalle
+  const [txnDetail, setTxnDetail] = useState([])
   const [view, setView] = useState("dash")
   const [paste, setPaste] = useState("")
   const [toast, setToast] = useState(null)
   const [detailMonth, setDetailMonth] = useState("all")
   const [detailSearch, setDetailSearch] = useState("")
 
-  const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 2500) }
+  const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 3000) }
 
   useEffect(() => {
     const load = async () => {
       const d = await storage.get(SK)
       if (d) setData(d.months || [])
-      else { setData([JAN25]); await storage.set(SK, { months: [JAN25] }) }
-
       const txn = await storage.get(SK_TXN)
       if (txn) setTxnDetail(txn.txns || [])
     }
@@ -53,53 +51,69 @@ export default function Dashboard() {
     if (!paste.trim()) { msg("Pega datos del Google Sheet", "err"); return }
     const lines = paste.trim().split("\n")
     const txns = []
+    let skipped = 0
+
     for (const line of lines) {
+      if (!line.trim()) continue
       const cols = line.split("\t")
-      if (cols.length < 8) continue
-      const [fecha, concepto, importeStr, tipo, subcat, cat, mes, añoStr] = cols
-      if (tipo === "Tipo" || !mes) continue
-      const importe = parseFloat(importeStr.replace(",", ".").replace(/[^\d.-]/g, ""))
-      if (isNaN(importe)) continue
-      txns.push({ fecha, concepto, importe, tipo, subcat, cat, mes: mes.trim(), año: parseInt(añoStr) })
+      if (cols.length < 6) { skipped++; continue }
+
+      const fecha      = cols[0]?.trim() || ""
+      const concepto   = cols[1]?.trim() || ""
+      const importeStr = cols[2]?.trim() || ""
+      const tipo       = cols[3]?.trim() || ""
+      const subcat     = cols[4]?.trim() || ""
+      const cat        = cols[5]?.trim() || ""
+      const mes        = cols[6]?.trim() || ""
+      const añoStr     = cols[7]?.trim() || ""
+
+      if (tipo === "Tipo" || !fecha || !concepto || !importeStr) { skipped++; continue }
+
+      const importe = parseImporte(importeStr)
+      if (isNaN(importe)) { skipped++; continue }
+
+      const mesReal = mes || "Enero"
+      const añoReal = parseInt(añoStr) || new Date().getFullYear()
+      txns.push({ fecha, concepto, importe, tipo, subcat, cat, mes: mesReal, año: añoReal })
     }
+
     if (!txns.length) { msg("No se encontraron transacciones válidas", "err"); return }
 
-    // Guardar detalle de transacciones
-    const newTxns = [...txnDetail]
+    const mesesAfectados = new Set(txns.map(t =>
+      `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
+    ))
+
+    const newTxns = txnDetail.filter(x => !mesesAfectados.has(x.mesId))
     txns.forEach(t => {
-      const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2,"0")}`
-      // quitar transacciones antiguas del mismo mes y reemplazar
-      const filtered = newTxns.filter(x => x.mesId !== key)
-      if (filtered.length !== newTxns.length) {
-        newTxns.length = 0
-        filtered.forEach(x => newTxns.push(x))
-      }
-    })
-    txns.forEach(t => {
-      const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2,"0")}`
+      const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
       newTxns.push({ ...t, mesId: key })
     })
-    newTxns.sort((a,b) => a.fecha?.localeCompare(b.fecha) || 0)
+    newTxns.sort((a, b) =>
+      (a.mesId || "").localeCompare(b.mesId || "") ||
+      (a.fecha || "").localeCompare(b.fecha || "")
+    )
     setTxnDetail(newTxns)
     await svTxn(newTxns)
 
-    // Agrupar por mes
     const groups = {}
     txns.forEach(t => {
       const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
       if (!groups[key]) groups[key] = { id: key, mes: t.mes.substring(0, 3), año: t.año, mesN: t.mes, ingresos: 0, gastos: 0, cats: {} }
       if (t.tipo === "Ingreso") groups[key].ingresos += t.importe
-      else { groups[key].gastos += Math.abs(t.importe); groups[key].cats[t.cat] = (groups[key].cats[t.cat] || 0) + Math.abs(t.importe) }
+      else {
+        groups[key].gastos += Math.abs(t.importe)
+        groups[key].cats[t.cat] = (groups[key].cats[t.cat] || 0) + Math.abs(t.importe)
+      }
     })
 
-    const newMonths = [...data]
-    Object.values(groups).forEach(g => {
-      const idx = newMonths.findIndex(m => m.id === g.id)
-      if (idx >= 0) newMonths[idx] = g; else newMonths.push(g)
-    })
+    const newMonths = data.filter(m => !mesesAfectados.has(m.id))
+    Object.values(groups).forEach(g => newMonths.push(g))
     newMonths.sort((a, b) => a.id.localeCompare(b.id))
-    setData(newMonths); sv(newMonths)
-    setPaste(""); setView("dash"); msg(`${Object.keys(groups).length} mes(es) importado(s)`)
+    setData(newMonths)
+    sv(newMonths)
+    setPaste("")
+    setView("dash")
+    msg(`${txns.length} transacciones en ${Object.keys(groups).length} mes(es)${skipped > 0 ? ` · ${skipped} filas ignoradas` : ""}`)
   }
 
   const delMonth = async (id) => {
@@ -112,15 +126,12 @@ export default function Dashboard() {
   const totG = data.reduce((a, m) => a + m.gastos, 0)
   const balance = totI - totG
 
-  // Datos para gráfico líneas suavizadas
   const lineData = data.map(m => ({
     name: `${m.mes} ${m.año}`,
     Ingresos: Math.round(m.ingresos),
     Gastos: Math.round(m.gastos),
-    Balance: Math.round(m.ingresos - m.gastos)
   }))
 
-  // Datos para gráfico de barras por categoría (media mensual)
   const allCats = [...new Set(data.flatMap(m => Object.keys(m.cats)))].filter(c => c !== "REVISAR").sort()
   const nMeses = data.length || 1
   const catMediaData = allCats.map(cat => ({
@@ -128,15 +139,16 @@ export default function Dashboard() {
     Media: Math.round(data.reduce((a, m) => a + (m.cats[cat] || 0), 0) / nMeses)
   })).sort((a, b) => b.Media - a.Media)
 
-  // Filtro tabla detalle
   const filteredTxns = txnDetail.filter(t => {
     if (detailMonth !== "all" && t.mesId !== detailMonth) return false
-    if (detailSearch && !t.concepto?.toLowerCase().includes(detailSearch.toLowerCase()) &&
-        !t.cat?.toLowerCase().includes(detailSearch.toLowerCase()) &&
-        !t.subcat?.toLowerCase().includes(detailSearch.toLowerCase())) return false
-    if (t.tipo === "Ingreso") return false // mostrar solo gastos en detalle
+    if (detailSearch) {
+      const q = detailSearch.toLowerCase()
+      if (!t.concepto?.toLowerCase().includes(q) &&
+          !t.cat?.toLowerCase().includes(q) &&
+          !t.subcat?.toLowerCase().includes(q)) return false
+    }
     return true
-  }).sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""))
+  })
 
   const MetricCard = ({ label, value, color }) =>
     <div style={{ background: "var(--bg-tertiary)", borderRadius: "var(--radius)", padding: "1rem", flex: 1, minWidth: 140 }}>
@@ -174,7 +186,6 @@ export default function Dashboard() {
     </div>
 
     {view === "dash" && <>
-      {/* Metric cards */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         <MetricCard label="Ingresos totales" value={fmt(totI)} color="var(--success)" />
         <MetricCard label="Gastos totales" value={fmt(totG)} color="var(--danger)" />
@@ -182,7 +193,6 @@ export default function Dashboard() {
         <MetricCard label="Tasa de ahorro" value={totI > 0 ? pct(balance / totI) : "—"} />
       </div>
 
-      {/* Gráfico 1: Líneas suavizadas ingresos vs gastos */}
       {data.length > 0 && <>
         <h3 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 12px" }}>Ingresos vs Gastos mensuales</h3>
         <div style={{ width: "100%", height: 280, marginBottom: 24 }}>
@@ -200,7 +210,7 @@ export default function Dashboard() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="name" fontSize={11} tick={{ fill: "var(--text-secondary)" }} />
-              <YAxis fontSize={11} tick={{ fill: "var(--text-secondary)" }} tickFormatter={v => fmt(v)} width={72} />
+              <YAxis fontSize={11} tick={{ fill: "var(--text-secondary)" }} tickFormatter={v => fmt(v)} width={80} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               <Area type="monotone" dataKey="Ingresos" stroke="#22c55e" strokeWidth={2.5} fill="url(#gradI)" dot={{ r: 4, fill: "#22c55e" }} activeDot={{ r: 6 }} />
@@ -210,25 +220,15 @@ export default function Dashboard() {
         </div>
       </>}
 
-      {/* Gráfico 2: Barras por categoría con media mensual */}
       {catMediaData.length > 0 && <>
         <h3 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 4px" }}>Gasto medio mensual por categoría</h3>
-        <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 12px" }}>
-          Media sobre {nMeses} {nMeses === 1 ? "mes" : "meses"}
-        </p>
+        <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "0 0 12px" }}>Media sobre {nMeses} {nMeses === 1 ? "mes" : "meses"}</p>
         <div style={{ width: "100%", height: 300, marginBottom: 24 }}>
           <ResponsiveContainer>
-            <BarChart data={catMediaData} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
+            <BarChart data={catMediaData} margin={{ top: 16, right: 8, left: 0, bottom: 48 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="name"
-                fontSize={11}
-                tick={{ fill: "var(--text-secondary)" }}
-                angle={-35}
-                textAnchor="end"
-                interval={0}
-              />
-              <YAxis fontSize={11} tick={{ fill: "var(--text-secondary)" }} tickFormatter={v => fmt(v)} width={72} />
+              <XAxis dataKey="name" fontSize={11} tick={{ fill: "var(--text-secondary)" }} angle={-35} textAnchor="end" interval={0} />
+              <YAxis fontSize={11} tick={{ fill: "var(--text-secondary)" }} tickFormatter={v => fmt(v)} width={80} />
               <Tooltip content={<CatTooltip />} />
               <Bar dataKey="Media" radius={[6, 6, 0, 0]} maxBarSize={60}
                 label={{ position: "top", fontSize: 10, fill: "var(--text-secondary)", formatter: v => fmt(v) }}
@@ -242,7 +242,6 @@ export default function Dashboard() {
         </div>
       </>}
 
-      {/* Tabla resumen mensual */}
       <h3 style={{ fontSize: 16, fontWeight: 500, margin: "0 0 8px" }}>Resumen mensual</h3>
       <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", overflow: "hidden", marginBottom: 24 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -280,16 +279,10 @@ export default function Dashboard() {
         </table>
       </div>
 
-      {/* Tabla detalle de todos los gastos */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Detalle de gastos</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>Detalle de transacciones</h3>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            value={detailSearch}
-            onChange={e => setDetailSearch(e.target.value)}
-            placeholder="Buscar concepto, categoría..."
-            style={{ fontSize: 12, minWidth: 200 }}
-          />
+          <input value={detailSearch} onChange={e => setDetailSearch(e.target.value)} placeholder="Buscar concepto, categoría..." style={{ fontSize: 12, minWidth: 200 }} />
           <select value={detailMonth} onChange={e => setDetailMonth(e.target.value)} style={{ fontSize: 12 }}>
             <option value="all">Todos los meses</option>
             {data.map(m => <option key={m.id} value={m.id}>{m.mesN} {m.año}</option>)}
@@ -301,10 +294,10 @@ export default function Dashboard() {
           <div style={{ padding: 32, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>
             No hay transacciones. Importa un mes para ver el detalle.
           </div>
-        ) : (
-          <>
+        ) : <>
+          <div style={{ maxHeight: 520, overflowY: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
+              <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
                 <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
                   <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 500, fontSize: 11, color: "var(--text-tertiary)" }}>Fecha</th>
                   <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 500, fontSize: 11, color: "var(--text-tertiary)" }}>Concepto</th>
@@ -316,6 +309,7 @@ export default function Dashboard() {
               <tbody>
                 {filteredTxns.map((t, i) => {
                   const col = CAT_COLS[t.cat] || "#94a3b8"
+                  const esIngreso = t.tipo === "Ingreso"
                   return <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "7px 12px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>{t.fecha}</td>
                     <td style={{ padding: "7px 12px", maxWidth: 240, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.concepto}>{t.concepto}</td>
@@ -323,19 +317,23 @@ export default function Dashboard() {
                     <td style={{ padding: "7px 12px" }}>
                       <span style={{ fontSize: 10, fontWeight: 500, color: col, background: `${col}18`, padding: "2px 8px", borderRadius: 12, whiteSpace: "nowrap" }}>{t.cat}</span>
                     </td>
-                    <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--danger)", whiteSpace: "nowrap" }}>{fmt2(Math.abs(t.importe))}</td>
+                    <td style={{ padding: "7px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 12, color: esIngreso ? "var(--success)" : "var(--danger)", whiteSpace: "nowrap" }}>
+                      {esIngreso ? "+" : ""}{fmt2(Math.abs(t.importe))}
+                    </td>
                   </tr>
                 })}
               </tbody>
             </table>
-            <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border)", background: "var(--bg-secondary)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-tertiary)" }}>
-              <span>{filteredTxns.length} transacciones</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--danger)" }}>
-                {fmt2(filteredTxns.reduce((a, t) => a + Math.abs(t.importe), 0))}
-              </span>
-            </div>
-          </>
-        )}
+          </div>
+          <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border)", background: "var(--bg-secondary)", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-tertiary)" }}>
+            <span>{filteredTxns.length} transacciones</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>
+              Gastos: <span style={{ color: "var(--danger)" }}>{fmt2(filteredTxns.filter(t => t.tipo !== "Ingreso").reduce((a, t) => a + Math.abs(t.importe), 0))}</span>
+              {" · "}
+              Ingresos: <span style={{ color: "var(--success)" }}>{fmt2(filteredTxns.filter(t => t.tipo === "Ingreso").reduce((a, t) => a + t.importe, 0))}</span>
+            </span>
+          </div>
+        </>}
       </div>
     </>}
 
@@ -346,7 +344,7 @@ export default function Dashboard() {
           Abre tu Google Sheet "FINANZAS CASA", pestaña "Transacciones". Selecciona las filas con datos (sin cabecera), copia con Ctrl+C y pega aquí.
         </p>
         <textarea value={paste} onChange={e => setPaste(e.target.value)} rows={8}
-          placeholder={"02/01/2025\tMERCADONA\t-85.30\tGasto\tAlimentación\tHogar\tEnero\t2025\t"}
+          placeholder={"02/01/2025\tMERCADONA\t-85,30 €\tGasto\tAlimentación\tHogar\tEnero\t2025"}
           style={{ width: "100%", fontFamily: "var(--font-mono)", fontSize: 11 }} />
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
           <button onClick={importData} style={{ flex: 1 }}>Importar datos</button>
@@ -355,7 +353,7 @@ export default function Dashboard() {
       </div>
       <div style={{ background: "var(--bg-tertiary)", borderRadius: "var(--radius)", padding: "1rem", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.7 }}>
         <p style={{ margin: "0 0 4px", fontWeight: 500, color: "var(--text-primary)" }}>Cómo funciona</p>
-        <p style={{ margin: 0 }}>Los datos se agrupan automáticamente por mes. Si importas un mes que ya existe, se sobreescribe. Puedes importar varios meses a la vez.</p>
+        <p style={{ margin: 0 }}>Los datos se agrupan automáticamente por mes. Si reimportas un mes ya existente, se sobreescribe. El mensaje de confirmación muestra exactamente cuántas transacciones entraron.</p>
       </div>
     </div>}
   </div>
