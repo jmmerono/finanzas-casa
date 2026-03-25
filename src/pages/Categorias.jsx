@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { storage } from '../lib/storage'
 
 const INIT = [
@@ -39,41 +39,56 @@ export default function Categorias() {
   const [expCat, setExpCat] = useState(null)
 
   // Pendientes
-  const [pending, setPending] = useState([]) // gastos sin categorizar de Firebase
-  const [loadingAI, setLoadingAI] = useState({}) // idx → true/false
-  const [pendingEdits, setPendingEdits] = useState({}) // idx → {cat, sub}
+  const [pending, setPending] = useState([])
+  const [loadingAI, setLoadingAI] = useState({})
+  const [pendingEdits, setPendingEdits] = useState({})
+
+  // ── FIX: ref para acceder al catálogo actual dentro de callbacks de Firebase
+  // sin necesitar que sean dependencias del useEffect
+  const itemsRef = useRef([])
+  useEffect(() => { itemsRef.current = items }, [items])
 
   const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 2200) }
 
-  useEffect(() => {
-    const load = async () => {
-      const d = await storage.get(SK)
-      if (d) { setItems(d.i || []); setCats(d.c || D_CATS); setSubs(d.s || D_SUBS) }
-      else { setItems(INIT); setCats(D_CATS); setSubs(D_SUBS) }
+  // ── NUEVO: sincroniza conceptos de las transacciones al catálogo
+  // Si un concepto no existe en el catálogo, lo añade con c/s = "REVISAR"
+  const syncConceptsToCatalog = useCallback(async (txns) => {
+    const currentItems = itemsRef.current
+    const catalogKeys = new Set(currentItems.map(i => i.d.trim().toUpperCase()))
 
-      const p = await storage.get(SK_PENDING)
-      if (p && p.items) setPending(p.items)
+    // Conceptos únicos de gastos que NO están en el catálogo
+    const newConcepts = [...new Set(
+      txns
+        .filter(t => t.tipo !== "Ingreso")
+        .map(t => t.concepto?.trim())
+        .filter(Boolean)
+    )].filter(concepto => !catalogKeys.has(concepto.toUpperCase()))
+
+    if (newConcepts.length === 0) return 0
+
+    const newEntries = newConcepts.map(concepto => ({
+      d: concepto,
+      s: "REVISAR",
+      c: "REVISAR",
+      r: 1  // flag "por revisar" activado
+    }))
+
+    const ni = [...currentItems, ...newEntries]
+    setItems(ni)
+    itemsRef.current = ni
+    await storage.set(SK, { i: ni, c: cats, s: subs })
+    return newConcepts.length
+  }, [cats, subs])
+
+  // ── FIX: checkAndAddPending ahora TAMBIÉN llama a syncConceptsToCatalog
+  const checkAndAddPending = useCallback(async (txns) => {
+    // 1. Sincronizar conceptos nuevos al catálogo
+    const added = await syncConceptsToCatalog(txns)
+    if (added > 0) {
+      msg(`${added} descripción${added > 1 ? 'es' : ''} nueva${added > 1 ? 's' : ''} añadida${added > 1 ? 's' : ''} al catálogo para revisar`)
     }
-    load()
-    const unsub = storage.subscribe(SK, (d) => {
-      if (d) { if (d.i) setItems(d.i); if (d.c) setCats(d.c); if (d.s) setSubs(d.s) }
-    })
-    const unsub2 = storage.subscribe(SK_PENDING, (d) => {
-      if (d && d.items) setPending(d.items)
-    })
-    // Detectar transacciones sin categoría del detalle de gastos
-    const unsub3 = storage.subscribe(SK_TXN, async (d) => {
-      if (!d || !d.txns) return
-      await checkAndAddPending(d.txns)
-    })
-    // Check inicial
-    storage.get(SK_TXN).then(async d => {
-      if (d && d.txns) await checkAndAddPending(d.txns)
-    })
-    return () => { if (unsub) unsub(); if (unsub2) unsub2(); if (unsub3) unsub3() }
-  }, [])
 
-  const checkAndAddPending = async (txns) => {
+    // 2. Lógica original: añadir gastos sin categoría a Pendientes
     const curr = await storage.get(SK_PENDING)
     const existingKeys = new Set((curr?.items || []).map(p => p.concepto + p.fecha))
     const newPending = txns.filter(t =>
@@ -89,7 +104,7 @@ export default function Categorias() {
       subSugerida: "",
       catFinal: "",
       subFinal: "",
-      estado: "pendiente" // pendiente | confirmado
+      estado: "pendiente"
     }))
 
     if (newPending.length > 0) {
@@ -97,7 +112,40 @@ export default function Categorias() {
       await storage.set(SK_PENDING, { items: merged })
       setPending(merged)
     }
-  }
+  }, [syncConceptsToCatalog])
+
+  useEffect(() => {
+    const load = async () => {
+      const d = await storage.get(SK)
+      if (d) { setItems(d.i || []); setCats(d.c || D_CATS); setSubs(d.s || D_SUBS) }
+      else { setItems(INIT); setCats(D_CATS); setSubs(D_SUBS) }
+
+      const p = await storage.get(SK_PENDING)
+      if (p && p.items) setPending(p.items)
+    }
+    load()
+
+    const unsub = storage.subscribe(SK, (d) => {
+      if (d) { if (d.i) setItems(d.i); if (d.c) setCats(d.c); if (d.s) setSubs(d.s) }
+    })
+    const unsub2 = storage.subscribe(SK_PENDING, (d) => {
+      if (d && d.items) setPending(d.items)
+    })
+
+    // ── FIX: suscripción a transacciones — ya llama a syncConceptsToCatalog internamente
+    const unsub3 = storage.subscribe(SK_TXN, async (d) => {
+      if (!d || !d.txns) return
+      await checkAndAddPending(d.txns)
+    })
+
+    // Check inicial de transacciones existentes
+    storage.get(SK_TXN).then(async d => {
+      if (d && d.txns) await checkAndAddPending(d.txns)
+    })
+
+    return () => { if (unsub) unsub(); if (unsub2) unsub2(); if (unsub3) unsub3() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // ← Solo se ejecuta una vez al montar; checkAndAddPending usa itemsRef para leer items frescos
 
   const sv = useCallback(async (ni, nc, ns) => {
     await storage.set(SK, { i: ni ?? items, c: nc ?? cats, s: ns ?? subs })
@@ -175,18 +223,26 @@ Responde SOLO con JSON válido, sin texto adicional:
     const sub = pendingEdits[idx]?.sub || item.subFinal || item.subSugerida
     if (!cat || !sub) { msg("Asigna categoría y subcategoría", "err"); return }
 
-    // Actualizar el pending
     const newPending = [...pending]
     newPending[idx] = { ...newPending[idx], catFinal: cat, subFinal: sub, estado: "confirmado" }
     await svPending(newPending)
 
-    // Añadir al catálogo si no existe
-    const exists = items.find(i => i.d.toUpperCase() === item.concepto.trim().toUpperCase())
-    if (!exists) {
+    // ── FIX: al confirmar, actualiza el catálogo si ya existe la entrada (con REVISAR)
+    // en lugar de solo añadirla si no existe
+    const existingIdx = items.findIndex(i => i.d.toUpperCase() === item.concepto.trim().toUpperCase())
+    if (existingIdx >= 0) {
+      // Ya existe (fue añadida como REVISAR por syncConceptsToCatalog) → actualizar
+      const ni = [...items]
+      ni[existingIdx] = { ...ni[existingIdx], s: sub, c: cat, r: 0 }
+      setItems(ni)
+      await sv(ni)
+    } else {
+      // No existe todavía → añadir
       const ni = [...items, { d: item.concepto.trim(), s: sub, c: cat, r: 0 }]
-      setItems(ni); await sv(ni)
+      setItems(ni)
+      await sv(ni)
     }
-    msg("Confirmado y añadido al catálogo")
+    msg("Confirmado y catálogo actualizado")
   }
 
   const deletePending = async (idx) => {
@@ -333,7 +389,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                 opacity: isConfirmed ? 0.6 : 1
               }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  {/* Info del gasto */}
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600 }}>{item.concepto}</span>
@@ -346,10 +401,8 @@ Responde SOLO con JSON válido, sin texto adicional:
                     </div>
                   </div>
 
-                  {/* Controles */}
                   {!isConfirmed && (
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      {/* Selector categoría */}
                       <select
                         value={catActual}
                         onChange={e => {
@@ -361,7 +414,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                         {cats.map(c => <option key={c}>{c}</option>)}
                       </select>
 
-                      {/* Selector subcategoría */}
                       <select
                         value={subActual}
                         onChange={e => setPendingEdits(prev => ({ ...prev, [idx]: { ...prev[idx], sub: e.target.value } }))}
@@ -371,7 +423,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                         {catActual && (subs[catActual] || []).map(s => <option key={s}>{s}</option>)}
                       </select>
 
-                      {/* Botón IA */}
                       {!item.catSugerida && (
                         <button
                           onClick={() => autoCategorize(idx)}
@@ -382,7 +433,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                         </button>
                       )}
 
-                      {/* Botón confirmar */}
                       <button
                         onClick={() => confirmPending(idx)}
                         style={{ fontSize: 11, padding: "4px 10px", background: "var(--success-bg)", color: "var(--success)", border: "1px solid var(--success)" }}
@@ -390,7 +440,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                         ✓ Confirmar
                       </button>
 
-                      {/* Eliminar */}
                       <button onClick={() => deletePending(idx)} style={{ fontSize: 11, padding: "4px 8px" }}>✕</button>
                     </div>
                   )}
@@ -404,7 +453,6 @@ Responde SOLO con JSON válido, sin texto adicional:
                   )}
                 </div>
 
-                {/* Sugerencia IA visible */}
                 {!isConfirmed && item.catSugerida && (
                   <div style={{ marginTop: 6, padding: "4px 8px", borderRadius: "var(--radius)", background: "#6366f118", fontSize: 11, color: "#6366f1", display: "flex", alignItems: "center", gap: 6 }}>
                     <span>✨ IA sugiere:</span>
