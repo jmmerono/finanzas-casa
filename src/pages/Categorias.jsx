@@ -5,10 +5,14 @@ const INIT = [
   {d:"RECIBO /C.P. C/ AERONAVE, 8-18",s:"Comunidad Garaje",c:"Inmobiliario",r:0},{d:"RECIBO /C.P. C/ ALGEMESI, 26",s:"Comunidad piso algemesi",c:"Inmobiliario",r:0},{d:"RECIB /C.U. APARCAMIENTOS ESFI",s:"Aparcamiento Esfinge",c:"Inmobiliario",r:0},{d:"RECIBO /PCO-ESCOLARIDAD",s:"Colegio Montessori",c:"Educación",r:0},{d:"RECIB /MONTESSORI CONDE DE ORG",s:"Colegio Montessori",c:"Educación",r:0},{d:"RECIBO /PARQUE CONDE DE ORGAZ,",s:"Colegio Montessori",c:"Educación",r:0},{d:"RECIBO /C.P. TIMON 27-33",s:"Comunidad Casa",c:"Inmobiliario",r:0},{d:"RECIB /MONTESSORI SERVICIOS-BA",s:"Colegio Montessori",c:"Educación",r:0},{d:"RECIBO /HOLMES PLACE",s:"Gimnasio",c:"Salud",r:0},{d:"TRANSF /GONZALO MEROÑO PAREDES",s:"Paga Gonzalo",c:"Casa",r:0},{d:"MERCADONA NUEVO ENSANCHE",s:"Alimentación",c:"Hogar",r:0},{d:"EL CORTE INGLES",s:"Ropa",c:"Hogar",r:0},{d:"SCALPERS GRAN VIA 27",s:"Ropa",c:"Hogar",r:0},{d:"HBO MAX",s:"TV Max",c:"Ocio",r:0},{d:"KINDLE SVCS*",s:"Libro",c:"Ocio",r:0},{d:"FNAC CALLAO",s:"Libro",c:"Ocio",r:0},{d:"AHORRAMAS",s:"Alimentación",c:"Hogar",r:0},{d:"E.S. EL PILAR",s:"Gasolina",c:"Hogar",r:0},{d:"PAGO BIZUM A YOLANY SARAHY",s:"Cuidado Madre AB",c:"Hogar",r:0},{d:"PAGO BIZUM A IVAMA CAROLINA",s:"Limpieza",c:"Hogar",r:0},{d:"RECIBO /AYUNTAMIENTO DE MADRID",s:"Impuestos",c:"Hogar",r:0},{d:"RECIB /COLEGIO OFICIAL DE ENFE",s:"Colegio Enfermería",c:"Hogar",r:0},{d:"RECIBO /INTERMON",s:"Donación",c:"Hogar",r:0},{d:"FARMACIA MARTA BERGUA",s:"Farmacia",c:"Salud",r:0},{d:"RECIB /MUTUA MADRILENA AUTOMOV",s:"Seguro Coche",c:"Hogar",r:0},{d:"PLAYSTATION NETWORK",s:"Playstation",c:"Ocio",r:0},{d:"SUPERCOR PALACIO DEL HIEL",s:"Alimentación",c:"Hogar",r:0},{d:"RENFE CERCANIAS",s:"Transporte",c:"Movilidad-Coche",r:0},
   {d:"KFC ALCALA 468",s:"Restaurante",c:"Ocio",r:0},{d:"Jacobs Douwe Egberts",s:"Alimentación",c:"Hogar",r:0},{d:"CAFETERIA VISCONTI",s:"Restaurante",c:"Ocio",r:0},{d:"LA VINA DE NEREA",s:"Restaurante",c:"Ocio",r:0},{d:"CENTRO DE IMAGEN VERA",s:"Belleza y Peluquería",c:"Salud",r:0},{d:"HIPERCOR CAMPO NACIONES",s:"Alimentación",c:"Hogar",r:0},{d:"PERFUMERIA PRIMOR",s:"Belleza y Peluquería",c:"Salud",r:0},{d:"LACAPRI",s:"Restaurante",c:"Ocio",r:0},{d:"ZARA MADRID",s:"Ropa",c:"Hogar",r:0},{d:"APP CRTM",s:"Transporte",c:"Movilidad-Coche",r:0},{d:"RECIB /ASISA",s:"Seguro Salud",c:"Salud",r:0},{d:"VIENA CAPELLANES",s:"Alimentación",c:"Hogar",r:0},{d:"EL TALLER DEL PAN",s:"Alimentación",c:"Hogar",r:0},{d:"PANOBRAR S.L.",s:"Alimentación",c:"Hogar",r:0},{d:"FEET HEALTH",s:"Esteticiene",c:"Salud",r:0},{d:"DP BARAJAS VIRTUAL",s:"Varios",c:"Hogar",r:0},{d:"LIQUID. CUOTA PTMO.",s:"Préstamo",c:"Hogar",r:0},{d:"ALIMENTACION Y BAZAR",s:"Alimentación",c:"Hogar",r:0},{d:"DELIKIA",s:"Alimentación",c:"Hogar",r:0},{d:"HPI INSTANT INK",s:"Impresora",c:"Hogar",r:0},{d:"REEMBOLS PT:",s:"Préstamo",c:"Hogar",r:0},{d:"ASOCIACION PRIMAVERA",s:"Donación",c:"Hogar",r:0},{d:"RECIB /CANAL DE ISABEL II",s:"Gas y Luz",c:"Hogar",r:0},{d:"RECIBO /ORANGE ESPAGNE",s:"Telefono / Internet",c:"Hogar",r:0},{d:"BOLT.EU",s:"Transporte",c:"Movilidad-Coche",r:0},{d:"Cabify",s:"Transporte",c:"Movilidad-Coche",r:0},{d:"EMPRESA MUNICIPAL EMT",s:"Transporte",c:"Movilidad-Coche",r:0},{d:"Telpark",s:"Parking",c:"Movilidad-Coche",r:0},{d:"INDIGO",s:"Parking",c:"Movilidad-Coche",r:0},{d:"VIPS",s:"Restaurante",c:"Ocio",r:0},{d:"RESTAURANTE JOSE MARIA",s:"Restaurante",c:"Ocio",r:0},{d:"FARMACIA TREBOL",s:"Farmacia",c:"Salud",r:0},{d:"LAMIAK",s:"Restaurante",c:"Ocio",r:0},{d:"ZARAJITO",s:"Restaurante",c:"Ocio",r:0},{d:"TABERNA",s:"Restaurante",c:"Ocio",r:0},{d:"TABERA EL TEMPRANILLO",s:"Restaurante",c:"Ocio",r:0},{d:"JENKINS MADRID",s:"Restaurante",c:"Ocio",r:0},{d:"YUCATAN",s:"Restaurante",c:"Ocio",r:0},{d:"QUEEN BURGUER",s:"Restaurante",c:"Ocio",r:0},{d:"AMAZON*",s:"Varios",c:"Hogar",r:0},{d:"POZUELO H.",s:"Alimentación",c:"Hogar",r:0},{d:"MANGO CC PALACIO",s:"Ropa",c:"Hogar",r:0},{d:"SCALPERS FASHION",s:"Ropa",c:"Hogar",r:0},{d:"IRISCOLOURS",s:"Gestiones",c:"Hogar",r:0},{d:"DNI/PASAPORTE",s:"Gestiones",c:"Hogar",r:0},{d:"CAFETERIA VIPS",s:"Restaurante",c:"Ocio",r:0},{d:"ALIMENTACION",s:"Alimentación",c:"Hogar",r:0},{d:"RECIB /COMUNIDAD PROP. PARROCO",s:"Comunidad Garaje",c:"Inmobiliario",r:0},{d:"CARLIN RETAIL",s:"Varios",c:"Hogar",r:0},{d:"TEAM PEREZ",s:"Varios",c:"Hogar",r:0},{d:"RELOJERIA ALIAGA",s:"Varios",c:"Hogar",r:0},{d:"COM REEM PT:",s:"Préstamo",c:"Hogar",r:0},{d:"VALDEBEBAS",s:"Restaurante",c:"Ocio",r:0},{d:"MADRID FILIPINAS",s:"Restaurante",c:"Ocio",r:0},{d:"SPAIN.GASTRONOMICO",s:"Restaurante",c:"Ocio",r:0}
 ]
+
 const D_CATS = ["Casa","Educación","Hogar","Inmobiliario","Movilidad-Coche","Ocio","Retirada Efectivo","Salud","Ingresos"]
 const D_SUBS = {"Casa":["Paga Gonzalo"],"Educación":["Colegio Montessori"],"Hogar":["Alimentación","Belleza y Peluquería","Colegio Enfermería","Comida Trabajo","Cuidado Madre AB","Donación","Gas y Luz","Gasolina","Gestiones","Impresora","Impuestos","Limpieza","Mascotas","Préstamo","Ropa","Seguro Coche","Telefono / Internet","Transporte","Varios"],"Inmobiliario":["Aparcamiento Esfinge","Comunidad Casa","Comunidad Garaje","Comunidad piso algemesi"],"Movilidad-Coche":["Parking","Transporte","Gasolina"],"Ocio":["Libro","Playstation","Restaurante","TV Max","Teatro","Viaje Ski"],"Retirada Efectivo":["Retirada Efectivo"],"Salud":["Esteticiene","Farmacia","Gimnasio","Seguro Salud","Belleza y Peluquería"],"Ingresos":["Nómina","Transferencia","Bizum Recibido","Subvención","Inversión"]}
 const COLS = {"Casa":"#8b5cf6","Educación":"#3b82f6","Hogar":"#10b981","Inmobiliario":"#6366f1","Movilidad-Coche":"#f97316","Ocio":"#ec4899","Retirada Efectivo":"#78716c","Salud":"#ef4444","Ingresos":"#22c55e","REVISAR":"#eab308"}
+
 const SK = "cc-cats-v4"
+const SK_PENDING = "cc-pending-v1"
+const SK_TXN = "cc-txn-detail-v1"
 
 export default function Categorias() {
   const [items, setItems] = useState([])
@@ -34,6 +38,11 @@ export default function Categorias() {
   const [nSub, setNSub] = useState("")
   const [expCat, setExpCat] = useState(null)
 
+  // Pendientes
+  const [pending, setPending] = useState([]) // gastos sin categorizar de Firebase
+  const [loadingAI, setLoadingAI] = useState({}) // idx → true/false
+  const [pendingEdits, setPendingEdits] = useState({}) // idx → {cat, sub}
+
   const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 2200) }
 
   useEffect(() => {
@@ -41,17 +50,150 @@ export default function Categorias() {
       const d = await storage.get(SK)
       if (d) { setItems(d.i || []); setCats(d.c || D_CATS); setSubs(d.s || D_SUBS) }
       else { setItems(INIT); setCats(D_CATS); setSubs(D_SUBS) }
+
+      const p = await storage.get(SK_PENDING)
+      if (p && p.items) setPending(p.items)
     }
     load()
     const unsub = storage.subscribe(SK, (d) => {
       if (d) { if (d.i) setItems(d.i); if (d.c) setCats(d.c); if (d.s) setSubs(d.s) }
     })
-    return () => { if (unsub) unsub() }
+    const unsub2 = storage.subscribe(SK_PENDING, (d) => {
+      if (d && d.items) setPending(d.items)
+    })
+    // Detectar transacciones sin categoría del detalle de gastos
+    const unsub3 = storage.subscribe(SK_TXN, async (d) => {
+      if (!d || !d.txns) return
+      await checkAndAddPending(d.txns)
+    })
+    // Check inicial
+    storage.get(SK_TXN).then(async d => {
+      if (d && d.txns) await checkAndAddPending(d.txns)
+    })
+    return () => { if (unsub) unsub(); if (unsub2) unsub2(); if (unsub3) unsub3() }
   }, [])
+
+  const checkAndAddPending = async (txns) => {
+    const curr = await storage.get(SK_PENDING)
+    const existingKeys = new Set((curr?.items || []).map(p => p.concepto + p.fecha))
+    const newPending = txns.filter(t =>
+      t.tipo !== "Ingreso" &&
+      (!t.cat || t.cat === "REVISAR" || t.cat === "" || !t.subcat || t.subcat === "REVISAR" || t.subcat === "") &&
+      !existingKeys.has(t.concepto + t.fecha)
+    ).map(t => ({
+      concepto: t.concepto,
+      fecha: t.fecha,
+      importe: Math.abs(t.importe),
+      mesId: t.mesId,
+      catSugerida: "",
+      subSugerida: "",
+      catFinal: "",
+      subFinal: "",
+      estado: "pendiente" // pendiente | confirmado
+    }))
+
+    if (newPending.length > 0) {
+      const merged = [...(curr?.items || []), ...newPending]
+      await storage.set(SK_PENDING, { items: merged })
+      setPending(merged)
+    }
+  }
 
   const sv = useCallback(async (ni, nc, ns) => {
     await storage.set(SK, { i: ni ?? items, c: nc ?? cats, s: ns ?? subs })
   }, [items, cats, subs])
+
+  const svPending = async (p) => {
+    await storage.set(SK_PENDING, { items: p })
+    setPending(p)
+  }
+
+  // Auto-categorizar con Claude
+  const autoCategorize = async (idx) => {
+    const item = pending[idx]
+    if (!item) return
+    setLoadingAI(prev => ({ ...prev, [idx]: true }))
+    try {
+      const catList = cats.join(", ")
+      const subList = Object.entries(subs).map(([c, ss]) => `${c}: ${ss.join(", ")}`).join(" | ")
+      const prompt = `Eres un clasificador de gastos bancarios de un hogar español.
+Descripción del banco: "${item.concepto}"
+Importe: ${item.importe}€
+
+Categorías disponibles: ${catList}
+Subcategorías por categoría: ${subList}
+
+Responde SOLO con JSON válido, sin texto adicional:
+{"categoria": "...", "subcategoria": "...", "razon": "..."}`
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 200,
+          messages: [{ role: "user", content: prompt }]
+        })
+      })
+      const data = await response.json()
+      const text = data.content?.[0]?.text || ""
+      const clean = text.replace(/```json|```/g, "").trim()
+      const parsed = JSON.parse(clean)
+
+      const newPending = [...pending]
+      newPending[idx] = {
+        ...newPending[idx],
+        catSugerida: parsed.categoria || "",
+        subSugerida: parsed.subcategoria || "",
+        razon: parsed.razon || "",
+        catFinal: parsed.categoria || "",
+        subFinal: parsed.subcategoria || ""
+      }
+      await svPending(newPending)
+    } catch (e) {
+      msg("Error al categorizar con IA", "err")
+    }
+    setLoadingAI(prev => ({ ...prev, [idx]: false }))
+  }
+
+  const autoCategorizeAll = async () => {
+    const uncategorized = pending.filter((p, i) => p.estado === "pendiente" && !p.catSugerida)
+    if (!uncategorized.length) { msg("No hay pendientes sin sugerencia", "err"); return }
+    msg(`Categorizando ${uncategorized.length} gastos...`)
+    for (let i = 0; i < pending.length; i++) {
+      if (pending[i].estado === "pendiente" && !pending[i].catSugerida) {
+        await autoCategorize(i)
+        await new Promise(r => setTimeout(r, 300))
+      }
+    }
+    msg("Categorización completada")
+  }
+
+  const confirmPending = async (idx) => {
+    const item = pending[idx]
+    const cat = pendingEdits[idx]?.cat || item.catFinal || item.catSugerida
+    const sub = pendingEdits[idx]?.sub || item.subFinal || item.subSugerida
+    if (!cat || !sub) { msg("Asigna categoría y subcategoría", "err"); return }
+
+    // Actualizar el pending
+    const newPending = [...pending]
+    newPending[idx] = { ...newPending[idx], catFinal: cat, subFinal: sub, estado: "confirmado" }
+    await svPending(newPending)
+
+    // Añadir al catálogo si no existe
+    const exists = items.find(i => i.d.toUpperCase() === item.concepto.trim().toUpperCase())
+    if (!exists) {
+      const ni = [...items, { d: item.concepto.trim(), s: sub, c: cat, r: 0 }]
+      setItems(ni); await sv(ni)
+    }
+    msg("Confirmado y añadido al catálogo")
+  }
+
+  const deletePending = async (idx) => {
+    const newPending = pending.filter((_, i) => i !== idx)
+    await svPending(newPending)
+    msg("Eliminado")
+  }
 
   const addOne = async () => {
     if (!aD.trim()) { msg("Escribe descripción", "err"); return }
@@ -119,20 +261,185 @@ export default function Categorias() {
 
   const rc = items.filter(i => i.r).length
   const cc = {}; items.forEach(i => { cc[i.c] = (cc[i.c] || 0) + 1 })
+  const pendientesSinConfirmar = pending.filter(p => p.estado === "pendiente").length
 
   const CatSel = ({ v, on, st }) => <select value={v} onChange={on} style={st}><option value="">Categoría...</option>{cats.map(c => <option key={c}>{c}</option>)}</select>
   const SubSel = ({ cat: p, v, on, cv, co, st }) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}><select value={v} onChange={on} style={st}><option value="">Subcategoría...</option>{p && (subs[p] || []).map(s => <option key={s}>{s}</option>)}<option value="__c">+ Nueva</option></select>{v === "__c" && <input value={cv} onChange={co} placeholder="Nombre..." style={{ fontSize: 11, background: 'var(--warning-bg)', borderColor: '#f59e0b' }} />}</div>
 
-  const tabs = [{ id: "list", l: "Catálogo" }, { id: "add", l: "Añadir" }, { id: "manage", l: "Categorías" }]
+  const tabs = [
+    { id: "pending", l: `Pendientes${pendientesSinConfirmar > 0 ? ` (${pendientesSinConfirmar})` : ""}` },
+    { id: "list", l: "Catálogo" },
+    { id: "add", l: "Añadir" },
+    { id: "manage", l: "Categorías" }
+  ]
+
+  const fmt2 = n => new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR",minimumFractionDigits:2}).format(n)
 
   return <div>
     {toast && <div style={{ position: "fixed", top: 12, right: 12, zIndex: 99, padding: "8px 16px", borderRadius: "var(--radius)", fontSize: 12, fontWeight: 500, background: toast.t === "err" ? "var(--danger-bg)" : "var(--success-bg)", color: toast.t === "err" ? "var(--danger)" : "var(--success)", border: `1px solid ${toast.t === "err" ? "var(--danger)" : "var(--success)"}22` }}>{toast.m}</div>}
 
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-      <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{items.length} descripciones · {cats.length} categorías{rc > 0 && <span style={{ color: "var(--warning)", fontWeight: 500 }}> · {rc} por revisar</span>}</p>
-      <div style={{ display: "flex", gap: 4 }}>{tabs.map(t => <button key={t.id} onClick={() => setView(t.id)} style={{ fontWeight: view === t.id ? 600 : 400, background: view === t.id ? "var(--bg-tertiary)" : "transparent" }}>{t.l}</button>)}</div>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+        {items.length} descripciones · {cats.length} categorías
+        {rc > 0 && <span style={{ color: "var(--warning)", fontWeight: 500 }}> · {rc} por revisar</span>}
+        {pendientesSinConfirmar > 0 && <span style={{ color: "#f97316", fontWeight: 500 }}> · {pendientesSinConfirmar} sin categorizar</span>}
+      </p>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setView(t.id)} style={{
+            fontWeight: view === t.id ? 600 : 400,
+            background: view === t.id ? "var(--bg-tertiary)" : "transparent",
+            color: t.id === "pending" && pendientesSinConfirmar > 0 ? "#f97316" : undefined
+          }}>{t.l}</button>
+        ))}
+      </div>
     </div>
 
+    {/* ── PENDIENTES ── */}
+    {view === "pending" && <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+            Gastos importados sin categoría o marcados como REVISAR. Claude propone una categoría automáticamente.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={autoCategorizeAll} style={{ background: "#6366f1", color: "white", border: "none", fontSize: 12 }}>
+            ✨ Categorizar todos con IA
+          </button>
+        </div>
+      </div>
+
+      {pending.length === 0 ? (
+        <div style={{ padding: 48, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13, background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
+          🎉 Sin gastos pendientes de categorizar.<br />
+          <span style={{ fontSize: 11, marginTop: 4, display: "block" }}>Los nuevos gastos aparecerán aquí al importar un mes.</span>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {pending.map((item, idx) => {
+            const edit = pendingEdits[idx] || {}
+            const catActual = edit.cat !== undefined ? edit.cat : (item.catFinal || item.catSugerida || "")
+            const subActual = edit.sub !== undefined ? edit.sub : (item.subFinal || item.subSugerida || "")
+            const col = COLS[catActual] || "#94a3b8"
+            const isConfirmed = item.estado === "confirmado"
+
+            return (
+              <div key={idx} style={{
+                background: "var(--bg-primary)",
+                borderRadius: "var(--radius-lg)",
+                border: `1px solid ${isConfirmed ? "var(--success)" : "var(--border)"}`,
+                padding: "12px 16px",
+                opacity: isConfirmed ? 0.6 : 1
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  {/* Info del gasto */}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600 }}>{item.concepto}</span>
+                      {isConfirmed && <span style={{ fontSize: 10, color: "var(--success)", background: "var(--success-bg)", padding: "1px 6px", borderRadius: 10 }}>✓ confirmado</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-secondary)" }}>
+                      <span>{item.fecha}</span>
+                      <span style={{ fontWeight: 600, color: "var(--danger)", fontFamily: "var(--font-mono)" }}>{fmt2(item.importe)}</span>
+                      {item.razon && <span style={{ fontStyle: "italic", color: "var(--text-tertiary)" }}>💡 {item.razon}</span>}
+                    </div>
+                  </div>
+
+                  {/* Controles */}
+                  {!isConfirmed && (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {/* Selector categoría */}
+                      <select
+                        value={catActual}
+                        onChange={e => {
+                          setPendingEdits(prev => ({ ...prev, [idx]: { ...prev[idx], cat: e.target.value, sub: "" } }))
+                        }}
+                        style={{ fontSize: 11, minWidth: 140 }}
+                      >
+                        <option value="">Categoría...</option>
+                        {cats.map(c => <option key={c}>{c}</option>)}
+                      </select>
+
+                      {/* Selector subcategoría */}
+                      <select
+                        value={subActual}
+                        onChange={e => setPendingEdits(prev => ({ ...prev, [idx]: { ...prev[idx], sub: e.target.value } }))}
+                        style={{ fontSize: 11, minWidth: 140 }}
+                      >
+                        <option value="">Subcategoría...</option>
+                        {catActual && (subs[catActual] || []).map(s => <option key={s}>{s}</option>)}
+                      </select>
+
+                      {/* Botón IA */}
+                      {!item.catSugerida && (
+                        <button
+                          onClick={() => autoCategorize(idx)}
+                          disabled={loadingAI[idx]}
+                          style={{ fontSize: 11, padding: "4px 10px", background: "#6366f1", color: "white", border: "none", opacity: loadingAI[idx] ? 0.6 : 1 }}
+                        >
+                          {loadingAI[idx] ? "..." : "✨ IA"}
+                        </button>
+                      )}
+
+                      {/* Botón confirmar */}
+                      <button
+                        onClick={() => confirmPending(idx)}
+                        style={{ fontSize: 11, padding: "4px 10px", background: "var(--success-bg)", color: "var(--success)", border: "1px solid var(--success)" }}
+                      >
+                        ✓ Confirmar
+                      </button>
+
+                      {/* Eliminar */}
+                      <button onClick={() => deletePending(idx)} style={{ fontSize: 11, padding: "4px 8px" }}>✕</button>
+                    </div>
+                  )}
+
+                  {isConfirmed && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 500, color: col, background: `${col}18`, padding: "2px 10px", borderRadius: 12 }}>{item.catFinal}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{item.subFinal}</span>
+                      <button onClick={() => deletePending(idx)} style={{ fontSize: 10, padding: "2px 6px" }}>✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sugerencia IA visible */}
+                {!isConfirmed && item.catSugerida && (
+                  <div style={{ marginTop: 6, padding: "4px 8px", borderRadius: "var(--radius)", background: "#6366f118", fontSize: 11, color: "#6366f1", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>✨ IA sugiere:</span>
+                    <strong>{item.catSugerida}</strong>
+                    <span>→</span>
+                    <span>{item.subSugerida}</span>
+                    {(catActual !== item.catSugerida || subActual !== item.subSugerida) && (
+                      <button
+                        onClick={() => setPendingEdits(prev => ({ ...prev, [idx]: { cat: item.catSugerida, sub: item.subSugerida } }))}
+                        style={{ fontSize: 10, padding: "1px 6px", marginLeft: 4 }}
+                      >Aplicar</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {pending.some(p => p.estado === "confirmado") && (
+            <button
+              onClick={async () => {
+                const filtered = pending.filter(p => p.estado !== "confirmado")
+                await svPending(filtered)
+                msg("Confirmados eliminados")
+              }}
+              style={{ fontSize: 12, color: "var(--text-tertiary)", background: "transparent", marginTop: 4 }}
+            >
+              Limpiar confirmados ({pending.filter(p => p.estado === "confirmado").length})
+            </button>
+          )}
+        </div>
+      )}
+    </>}
+
+    {/* ── CATÁLOGO ── */}
     {view === "list" && <>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar descripción o subcategoría..." style={{ flex: 1, minWidth: 160 }} />
@@ -148,7 +455,8 @@ export default function Categorias() {
           <span>⚑</span><span>Descripción</span><span>Subcategoría</span><span>Categoría</span><span></span>
         </div>
         <div style={{ maxHeight: 480, overflowY: "auto" }}>
-          {filt.length === 0 ? <div style={{ padding: 32, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>{fr ? "Todo categorizado" : "Sin resultados"}</div>
+          {filt.length === 0
+            ? <div style={{ padding: 32, textAlign: "center", color: "var(--text-tertiary)", fontSize: 13 }}>{fr ? "Todo categorizado" : "Sin resultados"}</div>
             : filt.map(item => {
               const ri = items.indexOf(item); const isE = eI === ri; const col = COLS[item.c] || "var(--text-tertiary)"
               return <div key={ri} style={{ display: "grid", gridTemplateColumns: "32px minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) 72px", padding: "7px 12px", borderBottom: "1px solid var(--border)", fontSize: 12, alignItems: "center", background: isE || item.r ? "var(--warning-bg)" : "transparent" }}>
@@ -176,6 +484,7 @@ export default function Categorias() {
       <p style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4, textAlign: "right" }}>{filt.length} de {items.length}</p>
     </>}
 
+    {/* ── AÑADIR ── */}
     {view === "add" && <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", padding: "1rem 1.25rem" }}>
         <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500 }}>Añadir descripción</h3>
@@ -200,6 +509,7 @@ export default function Categorias() {
       </div>
     </div>}
 
+    {/* ── GESTIONAR CATEGORÍAS ── */}
     {view === "manage" && <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", padding: "1rem 1.25rem" }}>
         <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500 }}>Crear categoría</h3>
