@@ -26,14 +26,21 @@ export default function Dashboard() {
   const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 2500) }
 
   useEffect(() => {
-    const d = storage.get(SK)
-    if (d) setData(d.months || [])
-    else { setData([JAN25]); storage.set(SK, { months: [JAN25] }) }
+    const load = async () => {
+      const d = await storage.get(SK)
+      if (d) setData(d.months || [])
+      else { setData([JAN25]); await storage.set(SK, { months: [JAN25] }) }
+    }
+    load()
+    const unsub = storage.subscribe(SK, (d) => {
+      if (d && d.months) setData(d.months)
+    })
+    return () => { if (unsub) unsub() }
   }, [])
 
-  const sv = useCallback((d) => { storage.set(SK, { months: d }) }, [])
+  const sv = useCallback(async (d) => { await storage.set(SK, { months: d }) }, [])
 
-  const importData = () => {
+  const importData = async () => {
     if (!paste.trim()) { msg("Pega datos del Google Sheet", "err"); return }
     const lines = paste.trim().split("\n")
     const txns = []
@@ -66,7 +73,7 @@ export default function Dashboard() {
     setPaste(""); setView("dash"); msg(`${Object.keys(groups).length} mes(es) importado(s)`)
   }
 
-  const delMonth = (id) => {
+  const delMonth = async (id) => {
     const nd = data.filter(m => m.id !== id); setData(nd); sv(nd)
     if (selMonth === id) setSelMonth(null); msg("Mes eliminado")
   }

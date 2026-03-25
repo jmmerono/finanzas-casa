@@ -37,16 +37,23 @@ export default function Categorias() {
   const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 2200) }
 
   useEffect(() => {
-    const d = storage.get(SK)
-    if (d) { setItems(d.i || []); setCats(d.c || D_CATS); setSubs(d.s || D_SUBS) }
-    else { setItems(INIT); setCats(D_CATS); setSubs(D_SUBS) }
+    const load = async () => {
+      const d = await storage.get(SK)
+      if (d) { setItems(d.i || []); setCats(d.c || D_CATS); setSubs(d.s || D_SUBS) }
+      else { setItems(INIT); setCats(D_CATS); setSubs(D_SUBS) }
+    }
+    load()
+    const unsub = storage.subscribe(SK, (d) => {
+      if (d) { if (d.i) setItems(d.i); if (d.c) setCats(d.c); if (d.s) setSubs(d.s) }
+    })
+    return () => { if (unsub) unsub() }
   }, [])
 
-  const sv = useCallback((ni, nc, ns) => {
-    storage.set(SK, { i: ni ?? items, c: nc ?? cats, s: ns ?? subs })
+  const sv = useCallback(async (ni, nc, ns) => {
+    await storage.set(SK, { i: ni ?? items, c: nc ?? cats, s: ns ?? subs })
   }, [items, cats, subs])
 
-  const addOne = () => {
+  const addOne = async () => {
     if (!aD.trim()) { msg("Escribe descripción", "err"); return }
     const sub = aS === "__c" ? aCS : aS
     if (!aR && (!aC || !sub)) { msg("Selecciona categoría y subcategoría", "err"); return }
@@ -57,20 +64,20 @@ export default function Categorias() {
       if (!ex.includes(aCS.trim())) { newSubs = { ...subs, [aC]: [...ex, aCS.trim()] }; setSubs(newSubs) }
     }
     const ni = [...items, { d: aD.trim(), s: aR ? "REVISAR" : sub, c: aR ? "REVISAR" : aC, r: aR ? 1 : 0 }]
-    setItems(ni); sv(ni, null, newSubs)
+    setItems(ni); await sv(ni, null, newSubs)
     setAD(""); setAC(""); setAS(""); setACS(""); setAR(false); msg(aR ? "Marcada para revisar" : "Añadida")
   }
 
-  const bulkAdd = () => {
+  const bulkAdd = async () => {
     const ls = bulk.split("\n").filter(l => l.trim()); if (!ls.length) return
     const ex = new Set(items.map(i => i.d.toUpperCase()))
     const add = ls.filter(l => !ex.has(l.trim().toUpperCase())).map(l => ({ d: l.trim(), s: "REVISAR", c: "REVISAR", r: 1 }))
     if (!add.length) { msg("Todas existen", "err"); return }
-    const ni = [...items, ...add]; setItems(ni); sv(ni)
+    const ni = [...items, ...add]; setItems(ni); await sv(ni)
     setBulk(""); setView("list"); setFr(true); setFc("Todas"); msg(`${add.length} añadidas para revisar`)
   }
 
-  const upd = (idx) => {
+  const upd = async (idx) => {
     const sub = eS === "__c" ? eCS : eS; if (!sub || !eC) return
     let newSubs = subs
     if (eS === "__c" && eCS.trim() && eC) {
@@ -78,29 +85,29 @@ export default function Categorias() {
       if (!ex.includes(eCS.trim())) { newSubs = { ...subs, [eC]: [...ex, eCS.trim()] }; setSubs(newSubs) }
     }
     const ni = [...items]; ni[idx] = { ...ni[idx], s: sub, c: eC, r: 0 }
-    setItems(ni); sv(ni, null, newSubs); setEI(null); msg("Actualizada")
+    setItems(ni); await sv(ni, null, newSubs); setEI(null); msg("Actualizada")
   }
 
-  const togR = (idx) => { const ni = [...items]; ni[idx] = { ...ni[idx], r: ni[idx].r ? 0 : 1 }; setItems(ni); sv(ni) }
-  const del = (idx) => { const ni = items.filter((_, i) => i !== idx); setItems(ni); sv(ni); msg("Eliminada") }
+  const togR = async (idx) => { const ni = [...items]; ni[idx] = { ...ni[idx], r: ni[idx].r ? 0 : 1 }; setItems(ni); await sv(ni) }
+  const del = async (idx) => { const ni = items.filter((_, i) => i !== idx); setItems(ni); await sv(ni); msg("Eliminada") }
 
-  const addCat = () => {
+  const addCat = async () => {
     if (!nCat.trim() || cats.includes(nCat.trim())) { msg("Nombre vacío o duplicado", "err"); return }
     const nc = [...cats, nCat.trim()]; const ns = { ...subs, [nCat.trim()]: [] }; COLS[nCat.trim()] = nCol
-    setCats(nc); setSubs(ns); sv(null, nc, ns); setNCat(""); msg(`"${nCat.trim()}" creada`)
+    setCats(nc); setSubs(ns); await sv(null, nc, ns); setNCat(""); msg(`"${nCat.trim()}" creada`)
   }
-  const delCat = (c) => {
+  const delCat = async (c) => {
     if (items.some(i => i.c === c)) { msg(`Hay items en "${c}"`, "err"); return }
     const nc = cats.filter(x => x !== c); const ns = { ...subs }; delete ns[c]
-    setCats(nc); setSubs(ns); sv(null, nc, ns); msg(`"${c}" eliminada`)
+    setCats(nc); setSubs(ns); await sv(null, nc, ns); msg(`"${c}" eliminada`)
   }
-  const addSub = (p) => {
+  const addSub = async (p) => {
     if (!nSub.trim() || (subs[p] || []).includes(nSub.trim())) { msg("Vacío o duplicado", "err"); return }
-    const ns = { ...subs, [p]: [...(subs[p] || []), nSub.trim()] }; setSubs(ns); sv(null, null, ns); setNSub(""); msg("Subcategoría añadida")
+    const ns = { ...subs, [p]: [...(subs[p] || []), nSub.trim()] }; setSubs(ns); await sv(null, null, ns); setNSub(""); msg("Subcategoría añadida")
   }
-  const delSub = (p, s) => {
+  const delSub = async (p, s) => {
     if (items.some(i => i.c === p && i.s === s)) { msg(`Hay items con "${s}"`, "err"); return }
-    const ns = { ...subs, [p]: (subs[p] || []).filter(x => x !== s) }; setSubs(ns); sv(null, null, ns); msg("Eliminada")
+    const ns = { ...subs, [p]: (subs[p] || []).filter(x => x !== s) }; setSubs(ns); await sv(null, null, ns); msg("Eliminada")
   }
 
   const filt = items.filter(i => {
