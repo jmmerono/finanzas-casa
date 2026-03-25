@@ -35,8 +35,9 @@ export default function Categorias() {
   const [bulk, setBulk] = useState("")
   const [nCat, setNCat] = useState("")
   const [nCol, setNCol] = useState("#6366f1")
-  const [nSub, setNSub] = useState("")
+  const [nSubs, setNSubs] = useState({})
   const [expCat, setExpCat] = useState(null)
+  const [inlineCat, setInlineCat] = useState("")
 
   // Pendientes
   const [pending, setPending] = useState([])
@@ -300,8 +301,20 @@ Responde SOLO con JSON válido, sin texto adicional:
     setCats(nc); setSubs(ns); await sv(null, nc, ns); msg(`"${c}" eliminada`)
   }
   const addSub = async (p) => {
-    if (!nSub.trim() || (subs[p] || []).includes(nSub.trim())) { msg("Vacío o duplicado", "err"); return }
-    const ns = { ...subs, [p]: [...(subs[p] || []), nSub.trim()] }; setSubs(ns); await sv(null, null, ns); setNSub(""); msg("Subcategoría añadida")
+    const val = (nSubs[p] || "").trim()
+    if (!val || (subs[p] || []).includes(val)) { msg("Vacío o duplicado", "err"); return }
+    const ns = { ...subs, [p]: [...(subs[p] || []), val] }
+    setSubs(ns); await sv(null, null, ns)
+    setNSubs(prev => ({ ...prev, [p]: "" }))
+    msg("Subcategoría añadida")
+  }
+  const addCatInline = async (nombre, onSelect) => {
+    if (cats.includes(nombre)) { msg("Ya existe", "err"); return }
+    const nc = [...cats, nombre]; const ns = { ...subs, [nombre]: [] }; COLS[nombre] = inlineCat.startsWith("#") ? inlineCat : "#6366f1"
+    setCats(nc); setSubs(ns); await sv(null, nc, ns)
+    setInlineCat("")
+    onSelect({ target: { value: nombre } })
+    msg(`"${nombre}" creada`)
   }
   const delSub = async (p, s) => {
     if (items.some(i => i.c === p && i.s === s)) { msg(`Hay items con "${s}"`, "err"); return }
@@ -319,7 +332,24 @@ Responde SOLO con JSON válido, sin texto adicional:
   const cc = {}; items.forEach(i => { cc[i.c] = (cc[i.c] || 0) + 1 })
   const pendientesSinConfirmar = pending.filter(p => p.estado === "pendiente").length
 
-  const CatSel = ({ v, on, st }) => <select value={v} onChange={on} style={st}><option value="">Categoría...</option>{cats.map(c => <option key={c}>{c}</option>)}</select>
+  const CatSel = ({ v, on, st }) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <select value={v} onChange={on} style={st}>
+      <option value="">Categoría...</option>
+      {cats.map(c => <option key={c}>{c}</option>)}
+      <option value="__newcat">+ Nueva categoría</option>
+    </select>
+    {v === "__newcat" && <div style={{ display: "flex", gap: 4 }}>
+      <input
+        autoFocus
+        value={inlineCat}
+        onChange={e => setInlineCat(e.target.value)}
+        placeholder="Nombre categoría..."
+        style={{ fontSize: 11, flex: 1, background: 'var(--warning-bg)', borderColor: '#f59e0b' }}
+        onKeyDown={e => { if (e.key === "Enter" && inlineCat.trim()) addCatInline(inlineCat.trim(), on) }}
+      />
+      <button onClick={() => { if (inlineCat.trim()) addCatInline(inlineCat.trim(), on) }} style={{ fontSize: 11, padding: "3px 8px", background: "var(--success-bg)", color: "var(--success)" }}>✓</button>
+    </div>}
+  </div>
   const SubSel = ({ cat: p, v, on, cv, co, st }) => <div style={{ display: "flex", flexDirection: "column", gap: 3 }}><select value={v} onChange={on} style={st}><option value="">Subcategoría...</option>{p && (subs[p] || []).map(s => <option key={s}>{s}</option>)}<option value="__c">+ Nueva</option></select>{v === "__c" && <input value={cv} onChange={co} placeholder="Nombre..." style={{ fontSize: 11, background: 'var(--warning-bg)', borderColor: '#f59e0b' }} />}</div>
 
   const tabs = [
@@ -593,7 +623,7 @@ Responde SOLO con JSON válido, sin texto adicional:
                   {sb.map(s => { const sc = items.filter(i => i.c === cat && i.s === s).length; return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 8px", borderRadius: "var(--radius)", background: "var(--bg-primary)", border: "1px solid var(--border)", fontSize: 11 }}><span>{s}</span><span style={{ color: "var(--text-tertiary)", fontSize: 9 }}>({sc})</span>{sc === 0 && <span onClick={() => delSub(cat, s)} style={{ cursor: "pointer", color: "var(--danger)", fontSize: 9, marginLeft: 2 }}>✕</span>}</div> })}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input value={expCat === cat ? nSub : ""} onChange={e => setNSub(e.target.value)} placeholder="Nueva subcategoría..." onKeyDown={e => { if (e.key === "Enter") addSub(cat) }} style={{ flex: 1, fontSize: 12 }} />
+                  <input value={nSubs[cat] || ""} onChange={e => setNSubs(prev => ({ ...prev, [cat]: e.target.value }))} placeholder="Nueva subcategoría..." onKeyDown={e => { if (e.key === "Enter") addSub(cat) }} style={{ flex: 1, fontSize: 12 }} />
                   <button onClick={() => addSub(cat)} style={{ fontSize: 12 }}>+ Añadir</button>
                 </div>
               </div>}
