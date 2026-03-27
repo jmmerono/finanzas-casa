@@ -259,22 +259,47 @@ Responde SOLO con JSON válido, sin texto adicional:
     newPending[idx] = { ...newPending[idx], catFinal: cat, subFinal: sub, estado: "confirmado" }
     await svPending(newPending)
 
-    // ── FIX: al confirmar, actualiza el catálogo si ya existe la entrada (con REVISAR)
-    // en lugar de solo añadirla si no existe
+    // ── Actualizar catálogo
     const existingIdx = items.findIndex(i => i.d.toUpperCase() === item.concepto.trim().toUpperCase())
+    let ni
     if (existingIdx >= 0) {
-      // Ya existe (fue añadida como REVISAR por syncConceptsToCatalog) → actualizar
-      const ni = [...items]
+      ni = [...items]
       ni[existingIdx] = { ...ni[existingIdx], s: sub, c: cat, r: 0 }
-      setItems(ni)
-      await sv(ni)
     } else {
-      // No existe todavía → añadir
-      const ni = [...items, { d: item.concepto.trim(), s: sub, c: cat, r: 0 }]
-      setItems(ni)
-      await sv(ni)
+      ni = [...items, { d: item.concepto.trim(), s: sub, c: cat, r: 0 }]
     }
-    msg("Confirmado y catálogo actualizado")
+    setItems(ni)
+    await sv(ni)
+
+    // ── RETROACTIVIDAD: actualizar TODAS las transacciones con el mismo concepto
+    const txnsRaw = await storage.get(SK_TXN)
+    if (txnsRaw && txnsRaw.txns) {
+      const conceptoUpper = item.concepto.trim().toUpperCase()
+      const updatedTxns = txnsRaw.txns.map(t =>
+        t.tipo !== "Ingreso" && t.concepto?.trim().toUpperCase() === conceptoUpper
+          ? { ...t, cat, subcat: sub }
+          : t
+      )
+      await storage.set(SK_TXN, { txns: updatedTxns })
+
+      // Recalcular y actualizar los totales por mes en cc-dashboard-v2
+      const dashRaw = await storage.get("cc-dashboard-v2")
+      if (dashRaw && dashRaw.months) {
+        const updatedMonths = dashRaw.months.map(m => {
+          // Recalcular cats de este mes a partir de transacciones actualizadas
+          const txnsDelMes = updatedTxns.filter(t => t.mesId === m.id && t.tipo !== "Ingreso")
+          const cats = {}
+          txnsDelMes.forEach(t => {
+            cats[t.cat] = (cats[t.cat] || 0) + Math.abs(t.importe)
+          })
+          const gastos = Object.values(cats).reduce((a, v) => a + v, 0)
+          return { ...m, cats, gastos }
+        })
+        await storage.set("cc-dashboard-v2", { months: updatedMonths })
+      }
+    }
+
+    msg("Confirmado · catálogo y transacciones anteriores actualizados")
   }
 
   const deletePending = async (idx) => {

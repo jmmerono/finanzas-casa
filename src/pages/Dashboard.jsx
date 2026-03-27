@@ -7,6 +7,8 @@ import { storage } from '../lib/storage'
 
 const SK = "cc-dashboard-v2"
 const SK_TXN = "cc-txn-detail-v1"
+const SK_CATS = "cc-cats-v4"
+const SK_EXCL = "cc-excluded-cats-v1"
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 const CAT_COLS = {"Hogar":"#10b981","Educación":"#3b82f6","Ocio":"#ec4899","Inmobiliario":"#6366f1","Salud":"#ef4444","Movilidad-Coche":"#f97316","Casa":"#8b5cf6","Retirada Efectivo":"#78716c","REVISAR":"#eab308"}
 
@@ -28,6 +30,11 @@ export default function Dashboard() {
   const [toast, setToast] = useState(null)
   const [detailMonth, setDetailMonth] = useState("all")
   const [detailSearch, setDetailSearch] = useState("")
+  const [excludedCats, setExcludedCats] = useState([])
+  const [availableCats, setAvailableCats] = useState([])
+  // Edición inline de concepto en tabla de transacciones
+  const [editConceptoIdx, setEditConceptoIdx] = useState(null)
+  const [editConceptoVal, setEditConceptoVal] = useState("")
 
   const msg = (m, t = "ok") => { setToast({ m, t }); setTimeout(() => setToast(null), 3000) }
 
@@ -37,15 +44,57 @@ export default function Dashboard() {
       if (d) setData(d.months || [])
       const txn = await storage.get(SK_TXN)
       if (txn) setTxnDetail(txn.txns || [])
+      const excl = await storage.get(SK_EXCL)
+      if (excl) setExcludedCats(excl.cats || [])
+      const cats = await storage.get(SK_CATS)
+      if (cats && cats.c) setAvailableCats(cats.c)
     }
     load()
     const unsub = storage.subscribe(SK, (d) => { if (d && d.months) setData(d.months) })
     const unsub2 = storage.subscribe(SK_TXN, (d) => { if (d && d.txns) setTxnDetail(d.txns) })
-    return () => { if (unsub) unsub(); if (unsub2) unsub2() }
+    const unsub3 = storage.subscribe(SK_EXCL, (d) => { if (d) setExcludedCats(d.cats || []) })
+    const unsub4 = storage.subscribe(SK_CATS, (d) => { if (d && d.c) setAvailableCats(d.c) })
+    return () => { if (unsub) unsub(); if (unsub2) unsub2(); if (unsub3) unsub3(); if (unsub4) unsub4() }
   }, [])
 
   const sv = useCallback(async (d) => { await storage.set(SK, { months: d }) }, [])
   const svTxn = useCallback(async (t) => { await storage.set(SK_TXN, { txns: t }) }, [])
+  const svExcl = useCallback(async (cats) => { await storage.set(SK_EXCL, { cats }) }, [])
+
+  const toggleExcludedCat = async (cat) => {
+    const next = excludedCats.includes(cat)
+      ? excludedCats.filter(c => c !== cat)
+      : [...excludedCats, cat]
+    setExcludedCats(next)
+    await svExcl(next)
+  }
+
+  const saveConcepto = async (globalIdx, newConcepto) => {
+    if (!newConcepto.trim()) return
+    const updated = txnDetail.map((t, i) => i === globalIdx ? { ...t, concepto: newConcepto.trim() } : t)
+    setTxnDetail(updated)
+    await svTxn(updated)
+    setEditConceptoIdx(null)
+    setEditConceptoVal("")
+    msg("Concepto actualizado")
+  }
+  const applyConceptCatalog = async (txns) => {
+    const catalogRaw = await storage.get(SK_CATS)
+    if (!catalogRaw || !catalogRaw.i) return txns
+    const catalog = catalogRaw.i
+    const catalogMap = {}
+    catalog.forEach(entry => {
+      if (entry.c && entry.c !== "REVISAR" && entry.s && entry.s !== "REVISAR") {
+        catalogMap[entry.d.trim().toUpperCase()] = { cat: entry.c, subcat: entry.s }
+      }
+    })
+    return txns.map(t => {
+      if (t.tipo === "Ingreso") return t
+      const match = catalogMap[t.concepto?.trim().toUpperCase()]
+      if (match) return { ...t, cat: match.cat, subcat: match.subcat }
+      return t
+    })
+  }
 
   const importData = async () => {
     if (!paste.trim()) { msg("Pega datos del Google Sheet", "err"); return }
@@ -79,12 +128,15 @@ export default function Dashboard() {
 
     if (!txns.length) { msg("No se encontraron transacciones válidas", "err"); return }
 
-    const mesesAfectados = new Set(txns.map(t =>
+    // Aplicar catálogo de conceptos para auto-categorizar
+    const txnsCategorized = await applyConceptCatalog(txns)
+
+    const mesesAfectados = new Set(txnsCategorized.map(t =>
       `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
     ))
 
     const newTxns = txnDetail.filter(x => !mesesAfectados.has(x.mesId))
-    txns.forEach(t => {
+    txnsCategorized.forEach(t => {
       const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
       newTxns.push({ ...t, mesId: key })
     })
@@ -96,7 +148,7 @@ export default function Dashboard() {
     await svTxn(newTxns)
 
     const groups = {}
-    txns.forEach(t => {
+    txnsCategorized.forEach(t => {
       const key = `${t.año}-${String(MESES.indexOf(t.mes) + 1).padStart(2, "0")}`
       if (!groups[key]) groups[key] = { id: key, mes: t.mes.substring(0, 3), año: t.año, mesN: t.mes, ingresos: 0, gastos: 0, cats: {} }
       if (t.tipo === "Ingreso") groups[key].ingresos += t.importe
@@ -113,7 +165,9 @@ export default function Dashboard() {
     sv(newMonths)
     setPaste("")
     setView("dash")
-    msg(`${txns.length} transacciones en ${Object.keys(groups).length} mes(es)${skipped > 0 ? ` · ${skipped} filas ignoradas` : ""}`)
+    const autoCat = txnsCategorized.filter(t => t.tipo !== "Ingreso" && t.cat && t.cat !== "REVISAR" && t.cat !== "").length
+    const total = txnsCategorized.filter(t => t.tipo !== "Ingreso").length
+    msg(`${txnsCategorized.length} transacciones en ${Object.keys(groups).length} mes(es) · ${autoCat}/${total} gastos auto-categorizados${skipped > 0 ? ` · ${skipped} ignoradas` : ""}`)
   }
 
   const delMonth = async (id) => {
@@ -122,24 +176,35 @@ export default function Dashboard() {
     msg("Mes eliminado")
   }
 
-  const totI = data.reduce((a, m) => a + m.ingresos, 0)
-  const totG = data.reduce((a, m) => a + m.gastos, 0)
+  // Transacciones y meses filtrados excluyendo categorías marcadas como excluidas
+  const txnDetailFiltered = txnDetail.filter(t => !excludedCats.includes(t.cat))
+
+  const dataFiltered = data.map(m => {
+    const catsFiltered = Object.fromEntries(
+      Object.entries(m.cats).filter(([cat]) => !excludedCats.includes(cat))
+    )
+    const gastosFiltered = Object.values(catsFiltered).reduce((a, v) => a + v, 0)
+    return { ...m, cats: catsFiltered, gastos: gastosFiltered }
+  })
+
+  const totI = dataFiltered.reduce((a, m) => a + m.ingresos, 0)
+  const totG = dataFiltered.reduce((a, m) => a + m.gastos, 0)
   const balance = totI - totG
 
-  const lineData = data.map(m => ({
+  const lineData = dataFiltered.map(m => ({
     name: `${m.mes} ${m.año}`,
     Ingresos: Math.round(m.ingresos),
     Gastos: Math.round(m.gastos),
   }))
 
-  const allCats = [...new Set(data.flatMap(m => Object.keys(m.cats)))].filter(c => c !== "REVISAR").sort()
+  const allCats = [...new Set(dataFiltered.flatMap(m => Object.keys(m.cats)))].filter(c => c !== "REVISAR").sort()
   const nMeses = data.length || 1
   const catMediaData = allCats.map(cat => ({
     name: cat,
-    Media: Math.round(data.reduce((a, m) => a + (m.cats[cat] || 0), 0) / nMeses)
+    Media: Math.round(dataFiltered.reduce((a, m) => a + (m.cats[cat] || 0), 0) / nMeses)
   })).sort((a, b) => b.Media - a.Media)
 
-  const filteredTxns = txnDetail.filter(t => {
+  const filteredTxns = txnDetailFiltered.filter(t => {
     if (detailMonth !== "all" && t.mesId !== detailMonth) return false
     if (detailSearch) {
       const q = detailSearch.toLowerCase()
@@ -178,6 +243,7 @@ export default function Dashboard() {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
       <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
         {data.length} mes(es){data.length > 0 ? ` · ${data[0].mes} ${data[0].año}` : ""}{data.length > 1 ? ` — ${data[data.length-1].mes} ${data[data.length-1].año}` : ""}
+        {excludedCats.length > 0 && <span style={{ color: "var(--warning)", fontWeight: 500 }}> · {excludedCats.length} categoría{excludedCats.length > 1 ? "s" : ""} excluida{excludedCats.length > 1 ? "s" : ""}</span>}
       </p>
       <div style={{ display: "flex", gap: 4 }}>
         <button onClick={() => setView("dash")} style={{ fontWeight: view === "dash" ? 600 : 400, background: view === "dash" ? "var(--bg-tertiary)" : "transparent" }}>Dashboard</button>
@@ -256,7 +322,7 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {data.map(m => {
+            {dataFiltered.map(m => {
               const bal = m.ingresos - m.gastos
               return <tr key={m.id} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td style={{ padding: "8px 12px", fontWeight: 500 }}>{m.mesN} {m.año}</td>
@@ -267,7 +333,7 @@ export default function Dashboard() {
                 <td style={{ padding: "8px 4px" }}><button onClick={() => delMonth(m.id)} style={{ fontSize: 10, padding: "2px 6px" }}>✕</button></td>
               </tr>
             })}
-            {data.length > 1 && <tr style={{ background: "var(--bg-secondary)" }}>
+            {dataFiltered.length > 1 && <tr style={{ background: "var(--bg-secondary)" }}>
               <td style={{ padding: "8px 12px", fontWeight: 500 }}>Total</td>
               <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 500, color: "var(--success)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmt2(totI)}</td>
               <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 500, color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmt2(totG)}</td>
@@ -310,9 +376,38 @@ export default function Dashboard() {
                 {filteredTxns.map((t, i) => {
                   const col = CAT_COLS[t.cat] || "#94a3b8"
                   const esIngreso = t.tipo === "Ingreso"
+                  // El índice global en txnDetail (necesario para editar correctamente)
+                  const globalIdx = txnDetail.indexOf(t)
+                  const isEditing = editConceptoIdx === globalIdx
                   return <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "7px 12px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>{t.fecha}</td>
-                    <td style={{ padding: "7px 12px", maxWidth: 240, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.concepto}>{t.concepto}</td>
+                    <td style={{ padding: "7px 12px", maxWidth: 260 }}>
+                      {isEditing ? (
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <input
+                            autoFocus
+                            value={editConceptoVal}
+                            onChange={e => setEditConceptoVal(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") saveConcepto(globalIdx, editConceptoVal)
+                              if (e.key === "Escape") { setEditConceptoIdx(null); setEditConceptoVal("") }
+                            }}
+                            style={{ fontSize: 11, flex: 1, fontFamily: "var(--font-mono)", padding: "2px 6px" }}
+                          />
+                          <button onClick={() => saveConcepto(globalIdx, editConceptoVal)} style={{ fontSize: 10, padding: "2px 6px", background: "var(--success-bg)", color: "var(--success)" }}>✓</button>
+                          <button onClick={() => { setEditConceptoIdx(null); setEditConceptoVal("") }} style={{ fontSize: 10, padding: "2px 6px" }}>✕</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", overflow: "hidden" }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", flex: 1 }} title={t.concepto}>{t.concepto}</span>
+                          <button
+                            onClick={() => { setEditConceptoIdx(globalIdx); setEditConceptoVal(t.concepto) }}
+                            style={{ fontSize: 9, padding: "1px 5px", opacity: 0.4, flexShrink: 0 }}
+                            title="Editar concepto"
+                          >✎</button>
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: "7px 12px", color: "var(--text-secondary)", fontSize: 11 }}>{t.subcat}</td>
                     <td style={{ padding: "7px 12px" }}>
                       <span style={{ fontSize: 10, fontWeight: 500, color: col, background: `${col}18`, padding: "2px 8px", borderRadius: 12, whiteSpace: "nowrap" }}>{t.cat}</span>
@@ -353,7 +448,37 @@ export default function Dashboard() {
       </div>
       <div style={{ background: "var(--bg-tertiary)", borderRadius: "var(--radius)", padding: "1rem", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.7 }}>
         <p style={{ margin: "0 0 4px", fontWeight: 500, color: "var(--text-primary)" }}>Cómo funciona</p>
-        <p style={{ margin: 0 }}>Los datos se agrupan automáticamente por mes. Si reimportas un mes ya existente, se sobreescribe. El mensaje de confirmación muestra exactamente cuántas transacciones entraron.</p>
+        <p style={{ margin: 0 }}>Los datos se agrupan automáticamente por mes. Si reimportas un mes ya existente, se sobreescribe. Al importar, cada gasto se categoriza automáticamente si su concepto está en el catálogo.</p>
+      </div>
+
+      <div style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", padding: "1rem 1.25rem" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 500 }}>Categorías excluidas del dashboard</h3>
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+          Las categorías marcadas no aparecen en gráficos ni totales. Los registros se conservan.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {[...new Set([...availableCats, ...Object.keys(CAT_COLS).filter(c => c !== "REVISAR")])].sort().map(cat => {
+            const col = CAT_COLS[cat] || "#64748b"
+            const isExcluded = excludedCats.includes(cat)
+            return (
+              <button key={cat} onClick={() => toggleExcludedCat(cat)} style={{
+                fontSize: 12, padding: "5px 12px", borderRadius: 20,
+                border: `1px solid ${isExcluded ? "#94a3b8" : col}`,
+                background: isExcluded ? "var(--bg-secondary)" : `${col}18`,
+                color: isExcluded ? "var(--text-tertiary)" : col,
+                textDecoration: isExcluded ? "line-through" : "none",
+                opacity: isExcluded ? 0.6 : 1, cursor: "pointer"
+              }}>
+                {isExcluded ? "✕ " : ""}{cat}
+              </button>
+            )
+          })}
+        </div>
+        {excludedCats.length > 0 && (
+          <p style={{ margin: "10px 0 0", fontSize: 11, color: "var(--warning)" }}>
+            Excluidas del dashboard: {excludedCats.join(", ")}
+          </p>
+        )}
       </div>
     </div>}
   </div>
