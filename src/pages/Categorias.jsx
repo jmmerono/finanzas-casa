@@ -377,6 +377,39 @@ Responde SOLO con JSON válido, sin texto adicional:
     const ns = { ...subs, [p]: (subs[p] || []).filter(x => x !== s) }; setSubs(ns); await sv(null, null, ns); msg("Eliminada")
   }
 
+  // ── Sincronización manual: añade al catálogo todos los conceptos históricos que falten
+  const [syncing, setSyncing] = useState(false)
+  const syncAllConcepts = async () => {
+    setSyncing(true)
+    try {
+      const txnsRaw = await storage.get(SK_TXN)
+      if (!txnsRaw || !txnsRaw.txns || txnsRaw.txns.length === 0) {
+        msg("No hay transacciones cargadas", "err"); setSyncing(false); return
+      }
+      const current = itemsRef.current
+      const catalogKeys = new Set(current.map(i => i.d.trim().toUpperCase()))
+      const nuevosConceptos = [...new Set(
+        txnsRaw.txns
+          .filter(t => t.tipo !== "Ingreso")
+          .map(t => t.concepto?.trim())
+          .filter(Boolean)
+      )].filter(c => !catalogKeys.has(c.toUpperCase()))
+
+      if (nuevosConceptos.length === 0) {
+        msg("Todo sincronizado, no hay conceptos nuevos"); setSyncing(false); return
+      }
+      const newEntries = nuevosConceptos.map(d => ({ d, s: "REVISAR", c: "REVISAR", r: 1 }))
+      const ni = [...current, ...newEntries]
+      setItems(ni)
+      itemsRef.current = ni
+      await storage.set(SK, { i: ni, c: cats, s: subs })
+      msg(`${nuevosConceptos.length} concepto${nuevosConceptos.length > 1 ? "s" : ""} nuevo${nuevosConceptos.length > 1 ? "s" : ""} añadido${nuevosConceptos.length > 1 ? "s" : ""} al catálogo`)
+    } catch (e) {
+      msg("Error al sincronizar", "err")
+    }
+    setSyncing(false)
+  }
+
   const filt = items.filter(i => {
     if (fr && !i.r) return false
     if (fc !== "Todas" && i.c !== fc) return false
@@ -406,7 +439,7 @@ Responde SOLO con JSON válido, sin texto adicional:
         {rc > 0 && <span style={{ color: "var(--warning)", fontWeight: 500 }}> · {rc} por revisar</span>}
         {pendientesSinConfirmar > 0 && <span style={{ color: "#f97316", fontWeight: 500 }}> · {pendientesSinConfirmar} sin categorizar</span>}
       </p>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setView(t.id)} style={{
             fontWeight: view === t.id ? 600 : 400,
@@ -414,6 +447,14 @@ Responde SOLO con JSON válido, sin texto adicional:
             color: t.id === "pending" && pendientesSinConfirmar > 0 ? "#f97316" : undefined
           }}>{t.l}</button>
         ))}
+        <button
+          onClick={syncAllConcepts}
+          disabled={syncing}
+          title="Añade al catálogo todos los conceptos de las transacciones históricas que aún no estén"
+          style={{ fontSize: 11, padding: "4px 10px", background: "var(--bg-secondary)", color: "var(--text-secondary)", opacity: syncing ? 0.6 : 1, borderStyle: "dashed" }}
+        >
+          {syncing ? "⏳ Sincronizando..." : "⟳ Sincronizar conceptos"}
+        </button>
       </div>
     </div>
 
