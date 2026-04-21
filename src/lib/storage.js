@@ -1,18 +1,20 @@
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, get, set, onValue } from 'firebase/database'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCpD11MDkvpcYInSEXcVFpE7hecLAfiYA4",
+  authDomain: "finanzas-casa-4f1cc.firebaseapp.com",
+  databaseURL: "https://finanzas-casa-4f1cc-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "finanzas-casa-4f1cc",
+  storageBucket: "finanzas-casa-4f1cc.firebasestorage.app",
+  messagingSenderId: "545467706523",
+  appId: "1:545467706523:web:13a1b55e75b15382faaa3e",
 }
 
 const app = initializeApp(firebaseConfig)
 const db = getDatabase(app)
+export const auth = getAuth(app)
 
 export const storage = {
   async get(key) {
@@ -21,7 +23,6 @@ export const storage = {
       return snapshot.exists() ? snapshot.val() : null
     } catch (e) {
       console.error('Firebase get error:', e)
-      // Fallback to localStorage
       try {
         const val = localStorage.getItem(key)
         return val ? JSON.parse(val) : null
@@ -32,12 +33,10 @@ export const storage = {
   async set(key, value) {
     try {
       await set(ref(db, key), value)
-      // Also save locally as backup
       try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
       return true
     } catch (e) {
       console.error('Firebase set error:', e)
-      // Fallback to localStorage
       try { localStorage.setItem(key, JSON.stringify(value)); return true } catch { return false }
     }
   },

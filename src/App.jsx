@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from './lib/storage'
 import Dashboard from './pages/Dashboard'
 import Categorias from './pages/Categorias'
+import Login from './pages/Login'
 
 function InstallBanner() {
   const [show, setShow] = useState(false)
@@ -71,6 +74,28 @@ function InstallBanner() {
 }
 
 export default function App() {
+  const [user, setUser] = useState(undefined) // undefined = cargando, null = no autenticado
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u ?? null))
+    return unsub
+  }, [])
+
+  // Pantalla de carga mientras Firebase comprueba la sesión
+  if (user === undefined) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: 24
+      }}>
+        🏠
+      </div>
+    )
+  }
+
+  // Sin sesión → pantalla de login
+  if (!user) return <Login />
+
   const linkStyle = ({ isActive }) => ({
     padding: '8px 16px',
     borderRadius: 'var(--radius)',
@@ -102,9 +127,19 @@ export default function App() {
               </div>
             </div>
           </div>
-          <nav style={{ display: 'flex', gap: 6 }}>
+          <nav style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <NavLink to="/" end style={linkStyle}>Dashboard</NavLink>
             <NavLink to="/categorias" style={linkStyle}>Categorías</NavLink>
+            <button
+              onClick={() => signOut(auth)}
+              style={{
+                padding: '8px 14px', borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--text-secondary)', fontSize: 13,
+                cursor: 'pointer', marginLeft: 6,
+              }}
+            >
+              Salir
+            </button>
           </nav>
         </header>
         <Routes>
